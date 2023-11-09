@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from models import PostResponse, CreatePostRequest
 from db import client as mongo_client
 from pymongo.collection import Collection
-import random
+from bson import ObjectId
+from fastapi.exceptions import HTTPException
 
 
 app = FastAPI()
@@ -36,15 +37,15 @@ async def create_post(create_post_request: CreatePostRequest) -> PostResponse:
 
 
 @app.get('/api/posts/{post_id}')
-async def get_post(post_id: int) -> PostResponse | None:
-    desired_post = None
+async def get_post(post_id: str) -> PostResponse | None:
+    database = mongo_client.get_database('blog')
+    collection: Collection = database.get_collection('post')
+    document: dict | None = collection.find_one({'_id': ObjectId(post_id)})
 
-    for post in database.get('posts', list()):
-        if post.id == post_id:
-            desired_post = post
-            break
+    if document is None:  #NOTE: if not document:
+        raise HTTPException(status_code=404)
 
-    return desired_post
+    return PostResponse(id=str(document.pop('_id')), **document)
 
 
 @app.delete('/api/posts/{post_id}')
