@@ -11,5 +11,3 @@ if connection_string_name not in os.environ:
 
 connection_string: str | None = os.getenv(connection_string_name)
 client = MongoClient(connection_string)
-
-# mongodb+srv://m3ck0:1lMTqRBCKq1wVpFU@demo.cysajd7.mongodb.net/?retryWrites=true&w=majority
