@@ -17,23 +17,10 @@ async def get_posts() -> list[PostResponse]:
 
 @app.post('/api/posts')
 async def create_post(create_post_request: CreatePostRequest) -> PostResponse:
-    # NOTE: same as 2 lines below: collection = mongo_client['blog']['post']
     database = mongo_client.get_database('blog')
     collection: Collection = database.get_collection('post')
     result = collection.insert_one(document=create_post_request.model_dump())
-    return PostResponse(
-        id=str(result.inserted_id),  # ObjectId -> str
-        # --- 1
-        # title=create_post_request.title,
-        # content=create_post_request.content
-        # --- 2
-        # **{
-        #     'title': create_post_request.title,
-        #     'content': create_post_request.content
-        # }
-        # --- 3
-        **create_post_request.model_dump()
-    )
+    return PostResponse(id=str(result.inserted_id), **create_post_request.model_dump())
 
 
 @app.get('/api/posts/{post_id}')
