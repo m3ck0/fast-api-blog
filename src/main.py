@@ -1,18 +1,44 @@
-from fastapi import FastAPI
-from models import PostResponse, CreatePostRequest
-from db import client as mongo_client
-from pymongo.collection import Collection
 from bson import ObjectId
+from db import client as mongo_client
+from fastapi import FastAPI
 from fastapi.exceptions import HTTPException
+from models import CreatePostRequest, PostResponse
+from pymongo.collection import Collection
+from rq import Queue
+from redis import Redis as RedisClient
+
+from tasks import publish_scheduled_posts as publish_scheduled_posts_task
 
 
 app = FastAPI()
+queue = Queue(connection=RedisClient())  # localhost:6379
+
 database = {}
 
 
 @app.get('/api/posts')
 async def get_posts() -> list[PostResponse]:
-    return database.get('posts', list())
+    database = mongo_client.get_database('blog')
+    collection: Collection = database.get_collection('post')
+
+    # # region - convert dict documents to PostResponses
+    # posts = list()
+
+    # for document in collection.find({'is_published': True}):
+    #     posts.append(PostResponse(id=document.pop('_id'), **document))
+    # # endregion
+
+    # # region - convert dict documents to PostResponses (v2)
+    # posts = map(
+    #     lambda d: PostResponse(id=d.pop('_id'), **d),
+    #     collection.find({'is_published': True})
+    # )
+    # # endregion
+
+    return [
+        PostResponse(id=str(document.pop('_id')), **document)
+        for document in collection.find({'is_published': True})
+    ]
 
 
 @app.post('/api/posts')
@@ -53,21 +79,26 @@ async def delete_post(post_id: int) -> bool:
 
 
 @app.put('/api/posts/{post_id}')
-async def update_post(post_id: int, update_post_request: CreatePostRequest) -> PostResponse:
-    posts = database.get('posts', list())
-    post_to_update_index: int = 0
+async def update_post(post_id: str, update_post_request: CreatePostRequest):
+    database = mongo_client.get_database('blog')
+    collection: Collection = database.get_collection('post')
 
-    for index in range(len(posts)):
-        post = posts[index]
-
-        if post.id == post_id:
-            post_to_update_index = index
-            break
-
-    posts[post_to_update_index] = PostResponse(
-        id=post_id,
-        title=update_post_request.title,
-        content=update_post_request.content
+    collection.update_one(
+        {'_id': ObjectId(post_id)},
+        {'$set': {'is_published': update_post_request.is_published}}
     )
 
-    return posts[post_to_update_index]
+    return {}, 200
+
+
+@app.post('/api/posts/publish')
+async def publish_scheduled_posts():
+    """
+    create task which published publishable posts
+    """
+
+    queue.enqueue(
+        f=publish_scheduled_posts_task,
+        caller='FastAPI backend'
+    )
+    return {}, 202
