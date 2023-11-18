@@ -5,13 +5,11 @@ from fastapi.exceptions import HTTPException
 from models import CreatePostRequest, PostResponse
 from pymongo.collection import Collection
 from rq import Queue
-from redis import Redis as RedisClient
-
-from tasks import publish_scheduled_posts as publish_scheduled_posts_task
-
+from worker.tasks import publish_scheduled_posts as publish_scheduled_posts_task
+from worker.connection import client as redis_client
 
 app = FastAPI()
-queue = Queue(connection=RedisClient())  # localhost:6379
+queue = Queue(connection=redis_client)  # NOTE: localhost:6379 by default
 
 database = {}
 
