@@ -66,3 +66,6 @@ gcloud services enable \
     - Edit
     - Add role `Secret Manager Secret Accessor`
     - Click "Save"
+2. Do not forget to enable network access to the dependent services
+    - MongoDB Atlas
+    - Redis
