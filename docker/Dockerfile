@@ -12,6 +12,3 @@ COPY ./src/models.py models.py
 COPY ./src/worker worker
 
 CMD uvicorn main:app --host 0.0.0.0
-
-# docker build -f docker/Dockerfile -t fast_api_blog:latest .
-# docker run -e "MONGODB_CS=<mongodb_cs>" fast_api_blog:latest
