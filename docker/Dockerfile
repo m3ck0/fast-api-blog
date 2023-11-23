@@ -9,6 +9,7 @@ RUN pip install -r requirements.txt
 COPY ./src/db.py db.py
 COPY ./src/main.py main.py
 COPY ./src/models.py models.py
+COPY ./src/worker worker
 
 CMD uvicorn main:app --host 0.0.0.0
 
