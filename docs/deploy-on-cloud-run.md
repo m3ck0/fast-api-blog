@@ -1,3 +1,4 @@
+![Deployment services](./images/deployment-services.png)
 
 ## Prepare GCP project
 1. enable required APIs
