@@ -5,11 +5,11 @@ from fastapi.exceptions import HTTPException
 from models import CreatePostRequest, PostResponse
 from pymongo.collection import Collection
 from rq import Queue
-from worker.tasks import publish_scheduled_posts as publish_scheduled_posts_task
 from worker.connection import client as redis_client
+from worker.tasks import publish_scheduled_posts as publish_scheduled_posts_task
 
 app = FastAPI()
-queue = Queue(connection=redis_client)  # NOTE: localhost:6379 by default
+queue = Queue(connection=redis_client)
 
 database = {}
 
@@ -19,24 +19,26 @@ async def get_posts() -> list[PostResponse]:
     database = mongo_client.get_database('blog')
     collection: Collection = database.get_collection('post')
 
-    # # region - convert dict documents to PostResponses
+    # region - convert dict documents to PostResponses (using for in loop)
     # posts = list()
 
     # for document in collection.find({'is_published': True}):
     #     posts.append(PostResponse(id=document.pop('_id'), **document))
-    # # endregion
+    # endregion
 
-    # # region - convert dict documents to PostResponses (v2)
+    # region - convert dict documents to PostResponses (using lambda)
     # posts = map(
     #     lambda d: PostResponse(id=d.pop('_id'), **d),
     #     collection.find({'is_published': True})
     # )
-    # # endregion
+    # endregion
 
+    # region - convert dict documents to PostResponses (using list comprehension)  # noqa: E501
     return [
         PostResponse(id=str(document.pop('_id')), **document)
         for document in collection.find({'is_published': True})
     ]
+    # endregion
 
 
 @app.post('/api/posts')
@@ -53,7 +55,7 @@ async def get_post(post_id: str) -> PostResponse | None:
     collection: Collection = database.get_collection('post')
     document: dict | None = collection.find_one({'_id': ObjectId(post_id)})
 
-    if document is None:  #NOTE: if not document:
+    if document is None:
         raise HTTPException(status_code=404)
 
     return PostResponse(id=str(document.pop('_id')), **document)
@@ -95,8 +97,5 @@ async def publish_scheduled_posts():
     create task which published publishable posts
     """
 
-    queue.enqueue(
-        f=publish_scheduled_posts_task,
-        caller='FastAPI backend'
-    )
+    queue.enqueue(f=publish_scheduled_posts_task, caller='FastAPI backend')
     return {}, 202
