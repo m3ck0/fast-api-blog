@@ -10,5 +10,4 @@ if connection_string_name not in os.environ:
                     f'defined in environemnt')
 
 connection_string: str | None = os.getenv(connection_string_name)
-# print(connection_string)
 client = Redis.from_url(connection_string)
