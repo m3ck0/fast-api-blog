@@ -8,7 +8,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('background_tasks')
 
 
-API_HOST = 'http://0.0.0.0:8000'
+# TODO: source from env
+API_HOST = 'https://application-kfofpusgoa-uc.a.run.app'
 
 
 def publish_scheduled_posts(caller: str = 'N/A') -> None:
@@ -31,8 +32,8 @@ def publish_scheduled_posts(caller: str = 'N/A') -> None:
 
     current_ts: float = time.time()
     posts_to_be_published = collection.find({
-        'is_published': False,
-        'publish_at_ts': {'$lte': current_ts}
+        'is_published': False
+        # 'publish_at_ts': {'$lte': current_ts}
     })
 
     for post in posts_to_be_published:
